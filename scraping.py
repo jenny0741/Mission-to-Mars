@@ -19,6 +19,7 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "hemispheres": mars_hemispheres(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -85,17 +86,70 @@ def mars_facts():
     # Add try/except for error handling
     try:
         # Use 'read_html' to scrape the facts table into a dataframe
-        df = pd.read_html('https://data-class-mars-facts.s3.amazonaws.com/Mars_Facts/index.html')[0]
+        mars_df = pd.read_html('https://data-class-mars-facts.s3.amazonaws.com/Mars_Facts/index.html')[0]
 
     except BaseException:
         return None
 
     # Assign columns and set index of dataframe
-    df.columns=['Description', 'Mars', 'Earth']
-    df.set_index('Description', inplace=True)
+    mars_df.columns=['Description', 'Mars', 'Earth']
+    mars_df.set_index('Description', inplace=True)
 
     # Convert dataframe into HTML format, add bootstrap
-    return df.to_html(classes="table table-striped")
+    return mars_df.to_html(classes="table table-striped")
+
+def mars_hemispheres(browser):
+
+# 1. Use browser to visit the URL 
+    url = 'https://marshemispheres.com/'
+
+    browser.visit(url)
+
+    browser.is_element_present_by_css('div.list_text', wait_time=1)
+
+    html = browser.html
+    hem_soup = soup(html, 'html.parser')
+
+
+# 2. Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+    titles = []
+    imgs = []
+
+
+# 3. Write code to retrieve the image urls and titles for each hemisphere.
+    hem_info = hem_soup.find('div', class_='collapsible results')
+    items = hem_info.find_all('div', class_='item')
+
+    for item in items:
+    
+    #Scrape titles
+        title = item.find('h3').text
+        titles.append(title)
+    
+    # Find and click the full image button
+        image_elem = browser.find_by_tag('a').click()
+    
+    #Scrape image urls
+        url = item.find('img', class_='thumb').get('src')
+        image_url = f'https://marshemispheres.com/{url}'
+        imgs.append(image_url)
+    
+    for url,title in zip(imgs,titles):
+    # Create the dictonary
+        dict = {
+            "img_url": url,
+            "title": title,
+        }
+    
+    # Add the objet to the list
+        hemisphere_image_urls.append(dict)
+
+# 5. Quit the browser
+    browser.quit()
+
+    return hemisphere_image_urls
+
 
 if __name__ == "__main__":
 
